@@ -13,6 +13,7 @@ Built primarily for Android using **Python**, **Kivy**, and **SQLite**, the app 
 * Which foods are getting old and should be eaten soon?
 * What foods fit my nutrition goals?
 * Am I staying within my calorie and protein targets?
+* What have I eaten today?
 * How long can my current groceries sustain my goals?
 
 ---
@@ -43,7 +44,7 @@ Built primarily for Android using **Python**, **Kivy**, and **SQLite**, the app 
 
 ## Fridge Inventory Management
 
-Users can view all current food items stored in their fridge.
+Users can view all food items currently stored in their fridge.
 
 Each inventory item displays:
 
@@ -58,12 +59,12 @@ Each inventory item displays:
 
 Example:
 
-```
+```text
 Lean Ground Beef
 
 900 g remaining
 
-Cal 1530    Pro 207g    Protein
+Cal 1530    Pro 207 g    Protein
 
 5 days old
 2026-06-01
@@ -86,21 +87,21 @@ Example:
 
 Current inventory:
 
-```
+```text
 Eggs: 10
 Purchased: 2026-06-01
 ```
 
 New purchase:
 
-```
+```text
 100 eggs
 Purchased: 2026-06-07
 ```
 
 Result:
 
-```
+```text
 Eggs: 110
 
 Batches:
@@ -153,7 +154,6 @@ Use cases:
 
 * Throwing away spoiled food
 * Correcting inventory mistakes
-* Removing consumed ingredients (until meal logging is implemented)
 
 Users specify:
 
@@ -170,20 +170,20 @@ Example:
 
 Initial inventory:
 
-```
+```text
 500 g Beef (June 1)
 400 g Beef (June 6)
 ```
 
 Remove:
 
-```
+```text
 600 g Beef
 ```
 
 Remaining:
 
-```
+```text
 300 g Beef (June 6)
 ```
 
@@ -201,7 +201,7 @@ Current metrics:
 
 Example:
 
-```
+```text
 Calories: 14,520 kcal
 
 Protein: 1,280 g
@@ -218,7 +218,7 @@ Foods: 8
 Users can sort inventory by:
 
 * A–Z
-* Purchase Date
+* Date Added
 
 ### Filtering
 
@@ -250,7 +250,7 @@ Inventory items display freshness based on the oldest batch remaining.
 
 Examples:
 
-```
+```text
 Today
 
 1 day old
@@ -264,21 +264,114 @@ This helps prioritize foods that should be consumed soon.
 
 ---
 
+## Daily Nutrition Tracker
+
+Users can track food intake on a day-by-day basis.
+
+Features:
+
+* Multiple meals per day
+* Multiple ingredients per meal
+* Automatic calorie calculations
+* Automatic protein calculations
+* Automatic inventory deduction
+* Historical day navigation
+
+---
+
+## Meal Logging
+
+Users can create meal cards throughout the day.
+
+Each meal card supports:
+
+* Custom meal names
+* Multiple ingredients per meal
+* Quantity consumed for each ingredient
+* Running meal nutrition totals
+
+Example:
+
+```text
+Lunch
+
+Ground Beef     225 g
+Greek Yogurt    120 g
+Eggs            2 pieces
+
+725 kcal
+68 g protein
+```
+
+---
+
+## Automatic Inventory Deduction
+
+When a meal is saved:
+
+* Meal records are stored in the database.
+* Daily nutritional totals are updated.
+* Consumed quantities are automatically deducted from fridge inventory using FIFO logic.
+
+This ensures fridge inventory accurately reflects actual food consumption.
+
+---
+
+## Daily Summary Dashboard
+
+Each day displays cumulative intake totals.
+
+Current metrics:
+
+```text
+Calories:
+1540 kcal
+
+Protein:
+132 g
+```
+
+---
+
+## Date Navigation
+
+Users can navigate between days using previous and next arrows.
+
+Features:
+
+* Review historical nutrition records
+* View previous meal logs
+* Track consistency over time
+
+Example:
+
+```text
+<    2026-06-07    >
+```
+
+Future versions will support editing and deleting past meal logs.
+
+---
+
 ## Mobile-First Interface
 
 Current UI optimizations include:
 
 * Phone-sized development viewport
 * Compact inventory cards
-* Collapsible forms
+* Compact meal cards
+* Collapsible grocery forms
 * Search, filter, and sort controls optimized for mobile use
-* Colour-coded nutritional indicators
+* Color-coded nutritional indicators
+* Minimal data-entry workflows
 
 ---
 
 ## Collapsible Sections
 
-The following sections can be expanded or collapsed:
+The following sections support collapsing:
+
+Fridge:
 
 * Add Grocery
 * Remove Portion
@@ -289,7 +382,7 @@ This allows users to focus primarily on viewing inventory while keeping data ent
 
 ## Project Structure
 
-```
+```text
 MealPrepApp/
 
 ├── main.py
@@ -298,11 +391,13 @@ MealPrepApp/
 
 ├── screens/
 │   ├── __init__.py
-│   └── fridge_page.py
+│   ├── fridge_page.py
+│   └── daily_tracker_page.py
 
 ├── ui/
 │   ├── __init__.py
-│   └── fridge_ui.py
+│   ├── fridge_ui.py
+│   └── daily_tracker_ui.py
 ```
 
 ---
@@ -313,7 +408,7 @@ MealPrepApp/
 
 * Application entry point
 * Initializes database
-* Launches fridge screen
+* Launches top-level navigation
 
 ### database.py
 
@@ -324,21 +419,31 @@ Handles:
 * Batch tracking
 * Inventory updates
 * FIFO inventory deductions
-* Summary calculations
+* Meal logging
+* Daily nutrition calculations
 
 ### screens/fridge_page.py
 
 Handles:
 
-* Application logic
+* Fridge business logic
 * Validation
-* Connecting UI interactions to database operations
+* Connecting fridge UI actions to database operations
+
+### screens/daily_tracker_page.py
+
+Handles:
+
+* Meal tracking logic
+* Daily nutrition summaries
+* Date navigation
+* Meal saving operations
 
 ### ui/fridge_ui.py
 
 Handles:
 
-* User interface layout
+* Fridge user interface layout
 * Inventory cards
 * Filtering and sorting controls
 * Search functionality
@@ -346,36 +451,41 @@ Handles:
 * Freshness indicators
 * Summary dashboard
 
+### ui/daily_tracker_ui.py
+
+Handles:
+
+* Daily tracker interface
+* Meal cards
+* Ingredient inputs
+* Daily summaries
+* Date navigation controls
+
 ---
 
 ## Planned Features
 
-### Meal Logging
+### Meal Editing
 
-Users will be able to record foods consumed.
+Users will be able to:
 
-Example:
-
-```
-225 g Ground Beef
-120 g Greek Yogurt
-3 Eggs
-```
-
-The app will automatically:
-
-* Deduct inventory
-* Update daily calories
-* Update daily protein
-* Update daily fibre intake
+* Edit saved meals
+* Delete meals
+* Restore inventory after meal deletion
 
 ---
 
-### Daily Nutrition Dashboard
+### Fibre Tracking
+
+Daily tracking of:
+
+* Calories
+* Protein
+* Fibre
 
 Example:
 
-```
+```text
 Calories:
 1500 / 1700 kcal
 
@@ -406,7 +516,7 @@ Estimate how long current inventory supports nutritional goals.
 
 Example:
 
-```
+```text
 Current inventory supports:
 
 Calories:
@@ -422,7 +532,7 @@ Protein:
 
 Future progress tracking:
 
-```
+```text
 Date       Weight
 
 2026-06-01 68.0 kg
@@ -437,12 +547,24 @@ Used to monitor:
 
 ---
 
+### Nutrition Goal System
+
+Users will be able to set:
+
+* Daily calorie goals
+* Daily protein goals
+* Daily fibre goals
+
+Progress indicators will visualize adherence to goals.
+
+---
+
 ## Motivation
 
 MealPrep was created to solve common problems encountered during meal prepping:
 
 * Forgetting what food is available
-* Buying duplicate groceries
+* Buying duplicate groceries unnecessarily
 * Losing track of calories and protein intake
 * Allowing groceries to spoil unnoticed
 * Difficulty maintaining accountability during dieting phases

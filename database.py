@@ -31,6 +31,29 @@ def init_db():
     )
     """)
 
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS meal_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        ingredient_id INTEGER NOT NULL,
+        quantity_eaten REAL NOT NULL,
+        calories REAL NOT NULL,
+        protein REAL NOT NULL,
+        eaten_date TEXT NOT NULL,
+        meal_name TEXT DEFAULT 'Meal',
+        FOREIGN KEY (ingredient_id) REFERENCES ingredients(id)
+    )
+    """)
+
+    # Migration for old existing meal_logs table
+    cur.execute("PRAGMA table_info(meal_logs)")
+    columns = [col[1] for col in cur.fetchall()]
+
+    if "meal_name" not in columns:
+        try:
+            cur.execute("ALTER TABLE meal_logs ADD COLUMN meal_name TEXT DEFAULT 'Meal'")
+        except sqlite3.OperationalError:
+            pass
+
     conn.commit()
     conn.close()
 
@@ -181,3 +204,94 @@ def deduct_inventory(ingredient_id, amount):
     conn.close()
 
     return remaining == 0
+
+
+def get_ingredient_by_name(name):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+    SELECT id, name, unit, calories_per_unit, protein_per_unit
+    FROM ingredients
+    WHERE LOWER(name) = LOWER(?)
+    """, (name.strip(),))
+
+    row = cur.fetchone()
+    conn.close()
+    return row
+
+
+def save_meal_log(meal_name, eaten_date, ingredients):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    saved = []
+
+    for item in ingredients:
+        name = item["name"].strip()
+        amount_text = item["amount"].strip()
+
+        if not name or not amount_text:
+            continue
+
+        try:
+            amount = float(amount_text)
+        except ValueError:
+            continue
+
+        ingredient = get_ingredient_by_name(name)
+
+        if not ingredient:
+            continue
+
+        ingredient_id, food_name, unit, cal_per_unit, protein_per_unit = ingredient
+
+        calories = amount * cal_per_unit
+        protein = amount * protein_per_unit
+
+        cur.execute("""
+        INSERT INTO meal_logs (
+            ingredient_id,
+            quantity_eaten,
+            calories,
+            protein,
+            eaten_date,
+            meal_name
+        )
+        VALUES (?, ?, ?, ?, ?, ?)
+        """, (
+            ingredient_id,
+            amount,
+            calories,
+            protein,
+            eaten_date,
+            meal_name,
+        ))
+
+        saved.append((ingredient_id, amount))
+
+    conn.commit()
+    conn.close()
+
+    for ingredient_id, amount in saved:
+        deduct_inventory(ingredient_id, amount)
+
+    return len(saved)
+
+
+def get_daily_totals(eaten_date):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+    SELECT
+        SUM(calories),
+        SUM(protein)
+    FROM meal_logs
+    WHERE eaten_date = ?
+    """, (eaten_date,))
+
+    result = cur.fetchone()
+    conn.close()
+
+    return result[0] or 0, result[1] or 0
