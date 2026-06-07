@@ -12,18 +12,16 @@ from ui.fridge_ui import (
     RED, RED_LIGHT, AMBER, AMBER_LIGHT,
     DARK, MID, MUTED, BORDER, CARD, CHIP_OFF,
 )
+from theme import theme
 
 # ── Page-local palette ────────────────────────────────────────────────────────
 NAV_BG      = (0.91, 0.93, 0.96, 1)
 NAV_TXT     = (0.35, 0.40, 0.47, 1)
-EDIT_BG     = (0.88, 0.93, 0.99, 1)   # pencil button bg  (soft blue)
-EDIT_TXT    = (0.15, 0.39, 0.66, 1)   # pencil icon colour
-DEL_BG      = (0.99, 0.89, 0.89, 1)   # x button bg (soft red)
-DEL_TXT     = (0.73, 0.11, 0.11, 1)   # x icon colour
+EDIT_BG     = (0.88, 0.93, 0.99, 1)
+EDIT_TXT    = (0.15, 0.39, 0.66, 1)
+DEL_BG      = (0.99, 0.89, 0.89, 1)
+DEL_TXT     = (0.73, 0.11, 0.11, 1)
 GOAL_BAR_BG = (0.88, 0.90, 0.93, 1)
-
-CAL_GOAL = 1700
-PRO_GOAL = 130
 
 
 # ── Goal progress bar ─────────────────────────────────────────────────────────
@@ -338,7 +336,9 @@ class DailyTrackerUI(BoxLayout):
         self.delete_meal_callback = delete_meal_callback
         self.meal_count           = 0
         self._toast_event         = None
-        self._saved_meals_cache   = {}   # meal_name → meal_data, kept for edit
+        self._saved_meals_cache   = {}
+        self._last_cal            = 0.0
+        self._last_pro            = 0.0
 
         with self.canvas.before:
             Color(*BG)
@@ -349,6 +349,8 @@ class DailyTrackerUI(BoxLayout):
         self._build_toast()
         self._build_summary()
         self._build_meal_area()
+
+        theme.bind(on_goals_change=self._on_goals_changed)
 
     def _upd_bg(self, *_):
         self._bg.pos  = self.pos
@@ -457,21 +459,21 @@ class DailyTrackerUI(BoxLayout):
 
         cal_col = BoxLayout(orientation="vertical", spacing=3)
         self._cal_bar = GoalBar(color=AMBER)
-        cal_cap = Label(text=f"Goal {CAL_GOAL} kcal", font_size=10,
+        self._cal_cap = Label(text=f"Goal {theme.cal_goal} kcal", font_size=10,
                         color=MUTED, halign="left", valign="middle",
                         size_hint_y=None, height=13)
-        cal_cap.bind(size=cal_cap.setter("text_size"))
+        self._cal_cap.bind(size=self._cal_cap.setter("text_size"))
         cal_col.add_widget(self._cal_bar)
-        cal_col.add_widget(cal_cap)
+        cal_col.add_widget(self._cal_cap)
 
         pro_col = BoxLayout(orientation="vertical", spacing=3)
         self._pro_bar = GoalBar(color=RED)
-        pro_cap = Label(text=f"Goal {PRO_GOAL}g protein", font_size=10,
+        self._pro_cap = Label(text=f"Goal {theme.protein_goal}g protein", font_size=10,
                         color=MUTED, halign="right", valign="middle",
                         size_hint_y=None, height=13)
-        pro_cap.bind(size=pro_cap.setter("text_size"))
+        self._pro_cap.bind(size=self._pro_cap.setter("text_size"))
         pro_col.add_widget(self._pro_bar)
-        pro_col.add_widget(pro_cap)
+        pro_col.add_widget(self._pro_cap)
 
         bar_row.add_widget(cal_col)
         bar_row.add_widget(pro_col)
@@ -490,25 +492,40 @@ class DailyTrackerUI(BoxLayout):
         self.add_widget(card)
 
     def update_daily_summary(self, calories, protein):
+        self._last_cal = calories
+        self._last_pro = protein
         self._cal_val.text     = f"{calories:.0f} kcal"
         self._protein_val.text = f"{protein:.0f}g"
-        self._cal_bar.set_progress(calories, CAL_GOAL)
-        self._pro_bar.set_progress(protein, PRO_GOAL)
+        self._cal_bar.set_progress(calories, theme.cal_goal)
+        self._pro_bar.set_progress(protein, theme.protein_goal)
         self._comment.text     = self._daily_comment(calories, protein)
+
+    def _on_goals_changed(self, *_):
+        """Fired when user updates goals on Profile page."""
+        self._cal_cap.text = f"Goal {theme.cal_goal} kcal"
+        self._pro_cap.text = f"Goal {theme.protein_goal}g protein"
+        # re-render bars and comment with last known values
+        cal = getattr(self, "_last_cal", 0)
+        pro = getattr(self, "_last_pro", 0)
+        self._cal_bar.set_progress(cal, theme.cal_goal)
+        self._pro_bar.set_progress(pro, theme.protein_goal)
+        self._comment.text = self._daily_comment(cal, pro)
 
     @staticmethod
     def _daily_comment(calories, protein):
+        cal_g = theme.cal_goal
+        pro_g = theme.protein_goal
         if calories == 0 and protein == 0:
             return "Log a meal to start the day."
-        if protein >= PRO_GOAL and calories <= CAL_GOAL:
+        if protein >= pro_g and calories <= cal_g:
             return "Protein hit, calories in check. Solid cut day."
-        if protein < PRO_GOAL * 0.6:
+        if protein < pro_g * 0.6:
             return "Protein is low. Feed the muscles."
-        if calories > CAL_GOAL:
+        if calories > cal_g:
             return "Calories went over. Log it honestly, move on."
-        if protein >= PRO_GOAL:
+        if protein >= pro_g:
             return "Protein goal hit. Keep it up."
-        if calories < CAL_GOAL * 0.6:
+        if calories < cal_g * 0.6:
             return "Pretty low intake so far. Don't under-eat."
         return "Decent day. Keep logging."
 
