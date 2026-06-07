@@ -295,3 +295,73 @@ def get_daily_totals(eaten_date):
     conn.close()
 
     return result[0] or 0, result[1] or 0
+
+def get_daily_meals(eaten_date):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+    SELECT
+        ml.meal_name,
+        i.name,
+        ml.quantity_eaten,
+        i.unit,
+        ml.calories,
+        ml.protein
+    FROM meal_logs ml
+    JOIN ingredients i ON ml.ingredient_id = i.id
+    WHERE ml.eaten_date = ?
+    ORDER BY ml.id ASC
+    """, (eaten_date,))
+
+    rows = cur.fetchall()
+    conn.close()
+
+    meals = {}
+
+    for meal_name, ingredient_name, qty, unit, calories, protein in rows:
+        if meal_name not in meals:
+            meals[meal_name] = {
+                "ingredients": [],
+                "calories": 0,
+                "protein": 0,
+            }
+
+        meals[meal_name]["ingredients"].append(
+            f"{ingredient_name}: {qty:g}{unit}"
+        )
+        meals[meal_name]["calories"] += calories
+        meals[meal_name]["protein"] += protein
+
+    return meals
+
+def get_all_ingredient_names():
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+    SELECT name
+    FROM ingredients
+    ORDER BY name ASC
+    """)
+
+    rows = cur.fetchall()
+    conn.close()
+
+    return [row[0] for row in rows]
+
+def delete_meal_log(meal_name: str, eaten_date: str):
+    """
+    Delete all meal_log rows for a given meal_name on a given date.
+    Call this BEFORE re-saving if implementing edit (delete-then-reinsert).
+    """
+    conn = get_connection()
+    cur  = conn.cursor()
+
+    cur.execute("""
+        DELETE FROM meal_logs
+        WHERE meal_name = ? AND eaten_date = ?
+    """, (meal_name, eaten_date))
+
+    conn.commit()
+    conn.close()
