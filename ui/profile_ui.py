@@ -3,7 +3,11 @@ profile_ui.py — Profile & Settings page UI.
 
 Exports: ProfileUI
 """
+import json
+import os
+from datetime import date
 
+from kivy.uix.gridlayout import GridLayout
 from kivy.graphics import Color, RoundedRectangle, Line
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
@@ -14,7 +18,116 @@ from kivy.clock import Clock
 from theme import theme
 from ui.fridge_ui import RoundedButton, RoundedInput, Divider
 
+STATS_FILE = "body_stats.json"
 
+
+def load_body_stats():
+    if not os.path.exists(STATS_FILE):
+        return []
+    try:
+        with open(STATS_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return []
+
+
+def save_body_stats(data):
+    with open(STATS_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2)
+
+
+class StatsGraph(Widget):
+    def __init__(self, stats, **kwargs):
+        super().__init__(**kwargs)
+        self.stats = stats
+        self.bind(pos=self._draw, size=self._draw)
+
+    def set_stats(self, stats):
+        self.stats = stats
+        self._draw()
+
+    def _draw(self, *_):
+        self.canvas.clear()
+
+        with self.canvas:
+            Color(*theme.CARD2)
+            RoundedRectangle(pos=self.pos, size=self.size, radius=[10])
+
+            if len(self.stats) < 2:
+                Color(*theme.MUTED)
+                Line(
+                    points=[
+                        self.x + 20, self.center_y,
+                        self.right - 20, self.center_y
+                    ],
+                    width=1
+                )
+                return
+
+            weights = [float(s["weight"]) for s in self.stats if s.get("weight")]
+            waists = [float(s["waist"]) for s in self.stats if s.get("waist")]
+
+            all_values = weights + waists
+            if not all_values:
+                return
+
+            min_v = min(all_values)
+            max_v = max(all_values)
+
+            if min_v == max_v:
+                min_v -= 1
+                max_v += 1
+
+            pad_x = 24
+            pad_y = 20
+            usable_w = self.width - pad_x * 2
+            usable_h = self.height - pad_y * 2
+
+            # weight line
+            weight_points = []
+            for i, stat in enumerate(self.stats):
+                if not stat.get("weight"):
+                    continue
+
+                value = float(stat["weight"])
+                x = self.x + pad_x + usable_w * (i / max(1, len(self.stats) - 1))
+                y = self.y + pad_y + usable_h * ((value - min_v) / (max_v - min_v))
+                weight_points.extend([x, y])
+
+            if len(weight_points) >= 4:
+                Color(*theme.BLUE)
+                Line(points=weight_points, width=2)
+
+            for i in range(0, len(weight_points), 2):
+                Color(*theme.BLUE)
+                RoundedRectangle(
+                    pos=(weight_points[i] - 3, weight_points[i + 1] - 3),
+                    size=(6, 6),
+                    radius=[3],
+                )
+
+            # waist line
+            waist_points = []
+            for i, stat in enumerate(self.stats):
+                if not stat.get("waist"):
+                    continue
+
+                value = float(stat["waist"])
+                x = self.x + pad_x + usable_w * (i / max(1, len(self.stats) - 1))
+                y = self.y + pad_y + usable_h * ((value - min_v) / (max_v - min_v))
+                waist_points.extend([x, y])
+
+            if len(waist_points) >= 4:
+                Color(*theme.AMBER)
+                Line(points=waist_points, width=2)
+
+            for i in range(0, len(waist_points), 2):
+                Color(*theme.AMBER)
+                RoundedRectangle(
+                    pos=(waist_points[i] - 3, waist_points[i + 1] - 3),
+                    size=(6, 6),
+                    radius=[3],
+                )
 # ── Toggle switch widget ──────────────────────────────────────────────────────
 
 class ToggleSwitch(Widget):
@@ -161,15 +274,67 @@ class ProfileUI(BoxLayout):
 
         self._draw_bg()
         self.bind(pos=self._upd_bg, size=self._upd_bg)
-
+        
+        self._body_stats = load_body_stats()
         self._build_header()
         self._build_goals_card()
+        self._build_body_stats_card()
         self._build_appearance_card()
         self._build_toast()
         self.add_widget(Widget())   # flex spacer pushes content up
 
         # subscribe so dark-mode flip repaints this page too
         theme.bind(on_theme_change=self._on_theme_change)
+
+    def _stats_summary_text(self):
+        if not self._body_stats:
+            return "No body stats saved yet."
+
+        latest = self._body_stats[-1]
+        text = f"Latest: {latest['weight']}kg"
+        if latest.get("height"):
+            text += f" | {latest['height']}cm"
+        if latest.get("waist"):
+            text += f" | waist {latest['waist']}cm"
+        text += f" | {latest['date']}"
+        return text
+
+
+    def _save_body_stats(self, *_):
+        height = self._height_input.text.strip()
+        weight = self._weight_input.text.strip()
+        waist = self._waist_input.text.strip()
+        recorded_date = self._date_input.text.strip() or str(date.today())
+
+        if not weight:
+            self._show_toast("Weight is required.", error=True)
+            return
+
+        try:
+            float(weight)
+            if height:
+                float(height)
+            if waist:
+                float(waist)
+        except ValueError:
+            self._show_toast("Stats must be numbers.", error=True)
+            return
+
+        entry = {
+            "date": recorded_date,
+            "height": height,
+            "weight": weight,
+            "waist": waist,
+        }
+
+        self._body_stats.append(entry)
+        self._body_stats.sort(key=lambda x: x["date"])
+        save_body_stats(self._body_stats)
+
+        self._latest_stats.text = self._stats_summary_text()
+        self._stats_graph.set_stats(self._body_stats)
+
+        self._show_toast("Body stats saved.")
 
     # ── background ────────────────────────────────────────────────────────────
 
@@ -196,20 +361,20 @@ class ProfileUI(BoxLayout):
         self.add_widget(self._title)
 
     # ── goals card ────────────────────────────────────────────────────────────
-
     def _build_goals_card(self):
         self.add_widget(_section_lbl("DAILY GOALS"))
 
         card = ProfileCard(orientation="vertical", size_hint_y=None, height=218)
         self._goals_card = card
 
-        # description
         desc = Label(
             text="Set your daily targets. The tracker bars and comments update automatically.",
             font_size=12,
             color=theme.MUTED,
-            halign="left", valign="middle",
-            size_hint_y=None, height=32,
+            halign="left",
+            valign="middle",
+            size_hint_y=None,
+            height=32,
             text_size=(340, None),
         )
         desc.bind(size=desc.setter("text_size"))
@@ -217,49 +382,148 @@ class ProfileUI(BoxLayout):
 
         card.add_widget(Divider())
 
-        # calorie row
-        cal_row = BoxLayout(orientation="horizontal",
-                            size_hint_y=None, height=44, spacing=10)
+        cal_row = BoxLayout(
+            orientation="horizontal",
+            size_hint_y=None,
+            height=44,
+            spacing=10,
+        )
+
         cal_lbl = Label(
-            text="Calories (kcal)", font_size=14, color=theme.DARK,
-            halign="left", valign="middle",
+            text="Calories (kcal)",
+            font_size=14,
+            color=theme.DARK,
+            halign="left",
+            valign="middle",
         )
         cal_lbl.bind(size=cal_lbl.setter("text_size"))
-        self._cal_input = RoundedInput(
-            hint="e.g. 1700", text=str(theme.cal_goal))
+
+        self._cal_input = RoundedInput("e.g. 1700", text=str(theme.cal_goal))
         self._cal_input.size_hint_x = None
-        self._cal_input.width       = 110
+        self._cal_input.width = 110
         self._cal_input.input_filter = "int"
+
         cal_row.add_widget(cal_lbl)
         cal_row.add_widget(self._cal_input)
         card.add_widget(cal_row)
 
-        # protein row
-        pro_row = BoxLayout(orientation="horizontal",
-                            size_hint_y=None, height=44, spacing=10)
+        pro_row = BoxLayout(
+            orientation="horizontal",
+            size_hint_y=None,
+            height=44,
+            spacing=10,
+        )
+
         pro_lbl = Label(
-            text="Protein (g)", font_size=14, color=theme.DARK,
-            halign="left", valign="middle",
+            text="Protein (g)",
+            font_size=14,
+            color=theme.DARK,
+            halign="left",
+            valign="middle",
         )
         pro_lbl.bind(size=pro_lbl.setter("text_size"))
-        self._pro_input = RoundedInput(
-            hint="e.g. 130", text=str(theme.protein_goal))
+
+        self._pro_input = RoundedInput("e.g. 130", text=str(theme.protein_goal))
         self._pro_input.size_hint_x = None
-        self._pro_input.width       = 110
+        self._pro_input.width = 110
         self._pro_input.input_filter = "int"
+
         pro_row.add_widget(pro_lbl)
         pro_row.add_widget(self._pro_input)
         card.add_widget(pro_row)
 
-        # save button
         save_btn = RoundedButton(
-            "Save Goals", bg_color=theme.BLUE,
-            height=44, font_size=14, radius=12,
+            "Save Goals",
+            bg_color=theme.BLUE,
+            height=44,
+            font_size=14,
+            radius=12,
         )
         save_btn.bind(on_press=self._save_goals)
         self._save_btn = save_btn
         card.add_widget(save_btn)
 
+        self.add_widget(card)
+
+    def _build_body_stats_card(self):
+        self.add_widget(_section_lbl("BODY STATS"))
+
+        card = ProfileCard(orientation="vertical", size_hint_y=None, height=310)
+        self._stats_card = card
+
+        desc = Label(
+            text="Track your cut over time. Weight is graphed so you can see the trend.",
+            font_size=12,
+            color=theme.MUTED,
+            halign="left",
+            valign="middle",
+            size_hint_y=None,
+            height=32,
+            text_size=(340, None),
+        )
+        desc.bind(size=desc.setter("text_size"))
+        self._stats_desc = desc
+        card.add_widget(desc)
+
+        card.add_widget(Divider())
+
+        grid = GridLayout(cols=2, spacing=8, size_hint_y=None, height=96)
+
+        self._height_input = RoundedInput("Height cm")
+        self._weight_input = RoundedInput("Weight kg")
+        self._waist_input = RoundedInput("Waist cm")
+        self._date_input = RoundedInput("Date", text=str(date.today()))
+
+        grid.add_widget(self._height_input)
+        grid.add_widget(self._weight_input)
+        grid.add_widget(self._waist_input)
+        grid.add_widget(self._date_input)
+
+        card.add_widget(grid)
+
+        save_btn = RoundedButton(
+            "Save Body Stats",
+            bg_color=theme.BLUE,
+            height=42,
+            font_size=14,
+            radius=12,
+        )
+        save_btn.bind(on_press=self._save_body_stats)
+        self._save_stats_btn = save_btn
+        card.add_widget(save_btn)
+
+        self._latest_stats = Label(
+            text=self._stats_summary_text(),
+            font_size=12,
+            color=theme.MUTED,
+            halign="center",
+            valign="middle",
+            size_hint_y=None,
+            height=28,
+        )
+        self._latest_stats.bind(size=self._latest_stats.setter("text_size"))
+        card.add_widget(self._latest_stats)
+
+        legend = Label(
+            text="[color=4D93E6]■[/color] Weight    [color=E6A53A]■[/color] Waist",
+            markup=True,
+            font_size=11,
+            color=theme.MUTED,
+            size_hint_y=None,
+            height=18,
+            halign="center",
+            valign="middle",
+        )
+        legend.bind(size=legend.setter("text_size"))
+        self._stats_legend = legend
+        card.add_widget(legend)
+
+        self._stats_graph = StatsGraph(
+            self._body_stats,
+            size_hint_y=None,
+            height=80,
+        )
+        card.add_widget(self._stats_graph)
         self.add_widget(card)
 
     # ── appearance card ───────────────────────────────────────────────────────
@@ -350,7 +614,7 @@ class ProfileUI(BoxLayout):
     def _on_theme_change(self, *_):
         # repaint background
         self._bg_c.rgba = theme.BG
-
+        self._stats_legend.color = theme.MUTED
         # labels
         self._title.color     = theme.DARK
         self._dark_label.color = theme.DARK
@@ -365,3 +629,9 @@ class ProfileUI(BoxLayout):
 
         # toggle sync (in case set_dark was called externally)
         self._toggle.set_state(theme.dark)
+        self._stats_card.apply_theme()
+
+        self._stats_desc.color = theme.MUTED
+        self._latest_stats.color = theme.MUTED
+        self._save_stats_btn.set_color(theme.BLUE)
+        self._stats_graph._draw()
