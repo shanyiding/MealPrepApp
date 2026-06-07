@@ -2,17 +2,18 @@
 
 ## Overview
 
-MealPrep is a personal mobile application designed to help users manage their food inventory, track nutritional intake, and maintain accountability during fitness goals such as cutting or bulking.
+MealPrep is a personal meal preparation and nutrition tracking application designed to help users manage their fridge inventory, monitor nutritional intake, and stay accountable to fitness goals such as cutting, bulking, or maintenance.
 
-The application is being developed primarily for Android using **Python**, **Kivy**, and **SQLite**.
+The app combines **food inventory management**, **nutrition tracking**, and **meal prep planning** into a single mobile-first experience.
 
-The main purpose of the app is to answer questions such as:
+Built primarily for Android using **Python**, **Kivy**, and **SQLite**, the app aims to answer questions such as:
 
 * What food do I currently have in my fridge?
 * How much protein and calories do I have available?
-* How long can my current groceries sustain my goals?
-* What have I eaten today?
+* Which foods are getting old and should be eaten soon?
+* What foods fit my nutrition goals?
 * Am I staying within my calorie and protein targets?
+* How long can my current groceries sustain my goals?
 
 ---
 
@@ -40,7 +41,7 @@ The main purpose of the app is to answer questions such as:
 
 ## Current Features (Implemented)
 
-### Fridge Inventory Management
+## Fridge Inventory Management
 
 Users can view all current food items stored in their fridge.
 
@@ -49,102 +50,148 @@ Each inventory item displays:
 * Food name
 * Quantity remaining
 * Unit (g, piece, ml, etc.)
-* Total calories available
-* Total protein available
-* Purchase batch information and dates
+* Total calories stored
+* Total protein stored
+* Food category tags
+* Purchase batch information
+* Freshness indicators
 
 Example:
 
-```text
+```
 Lean Ground Beef
-Amount: 900 g
-Calories stored: 1530 kcal
-Protein stored: 207 g
 
-Batches:
-2026-06-01: 500 g
-2026-06-06: 400 g
+900 g remaining
+
+Cal 1530    Pro 207g    Protein
+
+5 days old
+2026-06-01
+2026-06-06
 ```
 
 ---
 
-### Add Grocery
+## Batch Tracking
 
-Users can add groceries into inventory.
+The app tracks food by purchase batches.
 
-Supports:
+When additional quantities of an existing ingredient are purchased:
 
-* Creating completely new ingredients
-* Adding additional quantities to existing ingredients
-* Maintaining separate purchase batches and purchase dates
+* Quantities are merged into total inventory.
+* Purchase dates are preserved.
+* Multiple batches remain visible.
 
 Example:
 
 Current inventory:
 
-```text
+```
 Eggs: 10
+Purchased: 2026-06-01
 ```
 
-Purchase:
+New purchase:
 
-```text
+```
 100 eggs
-Date: 2026-06-07
+Purchased: 2026-06-07
 ```
 
-Inventory becomes:
+Result:
 
-```text
+```
 Eggs: 110
 
 Batches:
-2026-06-01: 10 eggs
-2026-06-07: 100 eggs
+2026-06-01
+2026-06-07
 ```
 
 ---
 
-### Remove / Throw Out Food
+## Add Grocery
 
-Users can deduct quantities from inventory without manually recalculating nutrition.
+Users can quickly add groceries using a mobile-optimized form.
 
-Supports:
+### Fields
+
+Row 1:
+
+* Food Name
+* Quantity
+* Unit
+
+Row 2:
+
+* Calories (per unit)
+* Protein (g/unit)
+* Tag (dropdown)
+* Date Purchased
+
+Supported tags:
+
+* Protein
+* Fibre
+* Carbs
+* Others
+
+Features:
+
+* Create completely new ingredients
+* Add additional quantities to existing ingredients
+* Preserve batch history automatically
+* Purchase date defaults to today's date
+
+---
+
+## Remove / Throw Out Food
+
+Users can remove food from inventory without recalculating nutritional information manually.
+
+Use cases:
 
 * Throwing away spoiled food
-* Removing food accidentally logged incorrectly
+* Correcting inventory mistakes
+* Removing consumed ingredients (until meal logging is implemented)
 
-Inventory deduction follows FIFO (First-In-First-Out):
+Users specify:
 
-Oldest batches are consumed first.
+* Food name
+* Amount to remove
+
+### FIFO Consumption
+
+Inventory deductions follow **First-In-First-Out (FIFO)** logic.
+
+Older batches are consumed before newer batches.
 
 Example:
 
-Inventory:
+Initial inventory:
 
-```text
-500 g beef (June 1)
-400 g beef (June 6)
+```
+500 g Beef (June 1)
+400 g Beef (June 6)
 ```
 
 Remove:
 
-```text
-600 g beef
+```
+600 g Beef
 ```
 
 Remaining:
 
-```text
-0 g beef (June 1)
-300 g beef (June 6)
+```
+300 g Beef (June 6)
 ```
 
 ---
 
-### Fridge Summary
+## Fridge Summary Dashboard
 
-Displays overall nutritional availability within the fridge.
+Displays overall nutritional availability.
 
 Current metrics:
 
@@ -154,32 +201,95 @@ Current metrics:
 
 Example:
 
-```text
-Fridge Summary
+```
+Calories: 14,520 kcal
 
-🔥 Total Calories: 14,520 kcal
+Protein: 1,280 g
 
-💪 Total Protein: 1,280 g
-
-📦 Foods: 8
+Foods: 8
 ```
 
 ---
 
-### Collapsible Cards
+## Inventory Filtering and Sorting
 
-The following sections support collapsing:
+### Sorting
+
+Users can sort inventory by:
+
+* A–Z
+* Purchase Date
+
+### Filtering
+
+Users can filter foods by category:
+
+* Protein
+* Fibre
+* Carbs
+* Others
+
+Filter chips use subtle colour themes:
+
+| Category | Style                             |
+| -------- | --------------------------------- |
+| Protein  | Soft grey with muted red border   |
+| Fibre    | Soft grey with sage green border  |
+| Carbs    | Soft grey with warm yellow border |
+| Others   | Soft grey with neutral border     |
+
+### Search
+
+Users can search inventory by food name.
+
+---
+
+## Freshness Indicators
+
+Inventory items display freshness based on the oldest batch remaining.
+
+Examples:
+
+```
+Today
+
+1 day old
+
+5 days old
+
+Unknown
+```
+
+This helps prioritize foods that should be consumed soon.
+
+---
+
+## Mobile-First Interface
+
+Current UI optimizations include:
+
+* Phone-sized development viewport
+* Compact inventory cards
+* Collapsible forms
+* Search, filter, and sort controls optimized for mobile use
+* Colour-coded nutritional indicators
+
+---
+
+## Collapsible Sections
+
+The following sections can be expanded or collapsed:
 
 * Add Grocery
-* Remove / Throw Out
+* Remove Portion
 
-This allows users to focus primarily on viewing fridge contents.
+This allows users to focus primarily on viewing inventory while keeping data entry accessible.
 
 ---
 
 ## Project Structure
 
-```text
+```
 MealPrepApp/
 
 ├── main.py
@@ -195,41 +305,46 @@ MealPrepApp/
 │   └── fridge_ui.py
 ```
 
-### Responsibilities
+---
 
-#### main.py
+## File Responsibilities
+
+### main.py
 
 * Application entry point
 * Initializes database
-* Launches the fridge page
+* Launches fridge screen
 
-#### database.py
+### database.py
 
 Handles:
 
 * Database initialization
 * Ingredient management
-* Inventory management
 * Batch tracking
-* Inventory deductions
+* Inventory updates
+* FIFO inventory deductions
 * Summary calculations
 
-#### screens/fridge_page.py
+### screens/fridge_page.py
 
 Handles:
 
-* Business logic
-* Connecting database operations with UI actions
+* Application logic
+* Validation
+* Connecting UI interactions to database operations
 
-#### ui/fridge_ui.py
+### ui/fridge_ui.py
 
 Handles:
 
 * User interface layout
-* Buttons
-* Forms
-* Inventory display
-* Summary display
+* Inventory cards
+* Filtering and sorting controls
+* Search functionality
+* Add/remove forms
+* Freshness indicators
+* Summary dashboard
 
 ---
 
@@ -237,42 +352,37 @@ Handles:
 
 ### Meal Logging
 
-Users will be able to:
-
-* Record foods eaten
-* Specify quantity consumed
-* Automatically deduct inventory
-* Automatically calculate nutritional intake
+Users will be able to record foods consumed.
 
 Example:
 
-```text
+```
 225 g Ground Beef
 120 g Greek Yogurt
 3 Eggs
 ```
 
-Automatically updates:
+The app will automatically:
 
-* Daily calories
-* Daily protein
-* Daily fiber
-* Food inventory
+* Deduct inventory
+* Update daily calories
+* Update daily protein
+* Update daily fibre intake
 
 ---
 
-### Daily Dashboard
+### Daily Nutrition Dashboard
 
-Displays:
+Example:
 
-```text
+```
 Calories:
 1500 / 1700 kcal
 
 Protein:
 125 / 130 g
 
-Fiber:
+Fibre:
 22 / 25 g
 ```
 
@@ -280,9 +390,9 @@ Fiber:
 
 ### Cost Tracking
 
-Each food purchase will include price information.
+Each grocery purchase will include pricing information.
 
-The application will calculate:
+Future calculations:
 
 * Cost per gram
 * Daily food expenditure
@@ -292,11 +402,11 @@ The application will calculate:
 
 ### Sustainability Estimates
 
-Estimate how long current groceries will sustain nutritional goals.
+Estimate how long current inventory supports nutritional goals.
 
 Example:
 
-```text
+```
 Current inventory supports:
 
 Calories:
@@ -310,33 +420,40 @@ Protein:
 
 ### Weight Tracking
 
-Future integration:
+Future progress tracking:
 
-```text
+```
 Date       Weight
+
 2026-06-01 68.0 kg
 2026-06-08 67.2 kg
 ```
 
-Used to monitor progress during cuts or bulks.
+Used to monitor:
+
+* Fat loss progress
+* Bulking progress
+* Weight maintenance trends
 
 ---
 
 ## Motivation
 
-This application was created to solve common problems encountered during meal prepping:
+MealPrep was created to solve common problems encountered during meal prepping:
 
 * Forgetting what food is available
-* Buying duplicate groceries unnecessarily
+* Buying duplicate groceries
 * Losing track of calories and protein intake
+* Allowing groceries to spoil unnoticed
 * Difficulty maintaining accountability during dieting phases
-* Understanding how long current food supplies will last
+* Understanding how long food supplies will last
 
 The goal is to provide a simple but powerful tool that combines:
 
 * Inventory management
 * Nutrition tracking
+* Grocery planning
 * Budget awareness
 * Fitness accountability
 
-into one application.
+into one intuitive mobile application.
