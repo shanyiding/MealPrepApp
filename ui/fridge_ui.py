@@ -10,30 +10,31 @@ from kivy.uix.textinput import TextInput
 from kivy.uix.spinner import Spinner
 from kivy.uix.widget import Widget
 from kivy.clock import Clock
+from theme import theme
 
 # ── Palette — Slate & Stone ───────────────────────────────────────────────────
-BG          = (0.94, 0.95, 0.96, 1)   # #F0F2F5
-CARD        = (1.00, 1.00, 1.00, 1)
-GREEN       = (0.09, 0.47, 0.32, 1)
-GREEN_LIGHT = (0.86, 0.96, 0.91, 1)
-RED         = (0.73, 0.11, 0.11, 1)
-RED_LIGHT   = (0.99, 0.89, 0.89, 1)
-RED_BTN     = (0.69, 0.13, 0.13, 1)   # slightly deeper for button bg
-AMBER       = (0.85, 0.47, 0.04, 1)
-AMBER_LIGHT = (0.99, 0.95, 0.85, 1)
-BLUE        = (0.15, 0.39, 0.66, 1)   # #2563A8
-BLUE_DARK   = (0.10, 0.28, 0.50, 1)   # pressed / tab-active shade
-BLUE_LIGHT  = (0.85, 0.93, 0.99, 1)
-DARK        = (0.12, 0.16, 0.22, 1)
-MID         = (0.35, 0.40, 0.47, 1)
-MUTED       = (0.52, 0.57, 0.64, 1)
-BORDER      = (0.83, 0.85, 0.88, 1)
-INPUT_BG    = (0.97, 0.98, 0.99, 1)   # very slight blue tint for inputs
-INPUT_BORDER= (0.74, 0.79, 0.86, 1)   # visible input border
-CHIP_OFF    = (0.88, 0.90, 0.93, 1)
-CHIP_OFF_TXT= (0.42, 0.47, 0.54, 1)
-TAB_OFF     = (0.91, 0.92, 0.94, 1)   # inactive tab bg
-TAB_OFF_TXT = (0.42, 0.47, 0.54, 1)
+BG = theme.BG
+CARD = theme.CARD
+GREEN = theme.GREEN
+GREEN_LIGHT = theme.GREEN_LIGHT
+RED = theme.RED
+RED_LIGHT = theme.RED_LIGHT
+RED_BTN = theme.RED_BTN
+AMBER = theme.AMBER
+AMBER_LIGHT = theme.AMBER_LIGHT
+BLUE = theme.BLUE
+BLUE_DARK = theme.BLUE_DARK
+BLUE_LIGHT = theme.BLUE_LIGHT
+DARK = theme.DARK
+MID = theme.MID
+MUTED = theme.MUTED
+BORDER = theme.BORDER
+INPUT_BG = theme.INPUT_BG
+INPUT_BORDER = theme.INPUT_BORDER
+CHIP_OFF = theme.CHIP_OFF
+CHIP_OFF_TXT = theme.CHIP_OFF_TXT
+TAB_OFF = theme.TAB_OFF
+TAB_OFF_TXT = theme.TAB_OFF_TXT
 
 TAG_COLORS = {
     "protein": ((0.55, 0.12, 0.12, 1), (0.98, 0.86, 0.86, 1)),
@@ -98,31 +99,35 @@ def build_pills(total_cal, total_protein, tag):
 # ── Widgets ───────────────────────────────────────────────────────────────────
 
 class Card(BoxLayout):
-    """Rounded white card with subtle shadow."""
-    def __init__(self, bg_color=CARD, radius=14, border_color=BORDER, **kwargs):
+    def __init__(self, bg_color=None, radius=14, border_color=None, **kwargs):
         super().__init__(**kwargs)
-        self.bg_color     = bg_color
-        self.radius       = radius
-        self.border_color = border_color
-        self.padding      = [12, 12, 12, 12]
-        self.spacing      = 6
+        self.bg_color = bg_color or theme.CARD
+        self.radius = radius
+        self.border_color = border_color or theme.BORDER
+        self.padding = [12, 12, 12, 12]
+        self.spacing = 6
+
         with self.canvas.before:
-            Color(0.70, 0.72, 0.76, 0.30)
-            self.shadow = RoundedRectangle(pos=(self.x+1, self.y-2), size=self.size, radius=[self.radius])
-            Color(*self.bg_color)
-            self.rect   = RoundedRectangle(pos=self.pos, size=self.size, radius=[self.radius])
-            Color(*self.border_color)
+            self._shadow_c = Color(*theme.SHADOW)
+            self.shadow = RoundedRectangle(pos=(self.x + 1, self.y - 2), size=self.size, radius=[self.radius])
+            self._fill_c = Color(*self.bg_color)
+            self.rect = RoundedRectangle(pos=self.pos, size=self.size, radius=[self.radius])
+            self._border_c = Color(*self.border_color)
             self.border = Line(
-                rounded_rectangle=(self.x, self.y, self.width, self.height, self.radius), width=1)
+                rounded_rectangle=(self.x, self.y, self.width, self.height, self.radius),
+                width=1,
+            )
+
         self.bind(pos=self._upd, size=self._upd)
 
     def _upd(self, *_):
-        self.rect.pos    = self.pos
-        self.rect.size   = self.size
-        self.shadow.pos  = (self.x+1, self.y-2)
+        self.rect.pos = self.pos
+        self.rect.size = self.size
+        self.shadow.pos = (self.x + 1, self.y - 2)
         self.shadow.size = self.size
-        self.border.rounded_rectangle = (self.x, self.y, self.width, self.height, self.radius)
-
+        self.border.rounded_rectangle = (
+            self.x, self.y, self.width, self.height, self.radius
+        )
 
 class RoundedButton(Button):
     """
@@ -168,10 +173,10 @@ class RoundedInput(TextInput):
             multiline=False,
             background_normal="",
             background_active="",
-            background_color=INPUT_BG,
-            foreground_color=DARK,
-            hint_text_color=MUTED,
-            cursor_color=BLUE,
+            background_color=theme.INPUT_BG,
+            foreground_color=theme.DARK,
+            hint_text_color=theme.MUTED,
+            cursor_color=theme.BLUE,
             padding=[12, 11, 12, 11],
             font_size=14,
             size_hint_y=None,
@@ -179,6 +184,7 @@ class RoundedInput(TextInput):
             write_tab=False,
             **kwargs,
         )
+
 
 class PillBadge(Label):
     def __init__(self, text, bg_color=GREEN_LIGHT, text_color=GREEN, pill_w=None, **kwargs):
@@ -245,13 +251,12 @@ class Divider(Widget):
         kwargs.setdefault("height", 1)
         super().__init__(**kwargs)
         with self.canvas:
-            Color(*BORDER)
+            self._line_c = Color(*theme.BORDER)
             self.line = Line(points=[self.x, self.y, self.right, self.y], width=1)
         self.bind(pos=self._upd, size=self._upd)
 
     def _upd(self, *_):
         self.line.points = [self.x, self.y, self.right, self.y]
-
 
 # ── Main UI ───────────────────────────────────────────────────────────────────
 
@@ -267,20 +272,26 @@ class FridgeUI(BoxLayout):
         self._sort_index     = 0
 
         with self.canvas.before:
-            Color(*BG)
+            self._bg_color = Color(*theme.BG)
             self._bg = RoundedRectangle(pos=self.pos, size=self.size)
+
         self.bind(pos=self._upd_bg, size=self._upd_bg)
 
         self._build_header()
         self._build_toast()
         self._build_summary()
-        self._build_form_tabs()    # replaces _build_add_card + _build_delete_card
+        self._build_form_tabs()
         self._build_inventory()
+
+        theme.bind(on_theme_change=self._on_theme_change)
 
     def _upd_bg(self, *_):
         self._bg.pos  = self.pos
         self._bg.size = self.size
-
+        
+    def _on_theme_change(self, *_):
+        self._bg_color.rgba = theme.BG
+        
     # ── helpers ───────────────────────────────────────────────────────────────
 
     def _section_label(self, text):

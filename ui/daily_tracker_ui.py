@@ -7,10 +7,7 @@ from kivy.uix.dropdown import DropDown
 from kivy.clock import Clock
 
 from ui.fridge_ui import (
-    Card, Divider, PillBadge, RoundedInput, RoundedButton,
-    BG, BLUE, BLUE_LIGHT, BLUE_DARK, GREEN, GREEN_LIGHT,
-    RED, RED_LIGHT, AMBER, AMBER_LIGHT,
-    DARK, MID, MUTED, BORDER, CARD, CHIP_OFF,
+    Card, Divider, PillBadge, RoundedInput, RoundedButton
 )
 from theme import theme
 
@@ -22,7 +19,27 @@ EDIT_TXT    = (0.15, 0.39, 0.66, 1)
 DEL_BG      = (0.99, 0.89, 0.89, 1)
 DEL_TXT     = (0.73, 0.11, 0.11, 1)
 GOAL_BAR_BG = (0.88, 0.90, 0.93, 1)
-
+BG = theme.BG
+CARD = theme.CARD
+GREEN = theme.GREEN
+GREEN_LIGHT = theme.GREEN_LIGHT
+RED = theme.RED
+RED_LIGHT = theme.RED_LIGHT
+AMBER = theme.AMBER
+AMBER_LIGHT = theme.AMBER_LIGHT
+BLUE = theme.BLUE
+BLUE_DARK = theme.BLUE_DARK
+BLUE_LIGHT = theme.BLUE_LIGHT
+DARK = theme.DARK
+MID = theme.MID
+MUTED = theme.MUTED
+BORDER = theme.BORDER
+INPUT_BG = theme.INPUT_BG
+INPUT_BORDER = theme.INPUT_BORDER
+CHIP_OFF = theme.CHIP_OFF
+CHIP_OFF_TXT = theme.CHIP_OFF_TXT
+TAB_OFF = theme.TAB_OFF
+TAB_OFF_TXT = theme.TAB_OFF_TXT
 
 # ── Goal progress bar ─────────────────────────────────────────────────────────
 
@@ -341,7 +358,7 @@ class DailyTrackerUI(BoxLayout):
         self._last_pro            = 0.0
 
         with self.canvas.before:
-            Color(*BG)
+            self._bg_color = Color(*theme.BG)
             self._bg = RoundedRectangle(pos=self.pos, size=self.size)
         self.bind(pos=self._upd_bg, size=self._upd_bg)
 
@@ -351,6 +368,10 @@ class DailyTrackerUI(BoxLayout):
         self._build_meal_area()
 
         theme.bind(on_goals_change=self._on_goals_changed)
+        theme.bind(on_theme_change=self._on_theme_change)
+    
+    def _on_theme_change(self, *_):
+        self._bg_color.rgba = theme.BG
 
     def _upd_bg(self, *_):
         self._bg.pos  = self.pos
