@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+
+# Virtual environments
+venv/
+env/
+
+# SQLite database
+*.db
+
+# Kivy
+.kivy/
+
+# VS Code
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
