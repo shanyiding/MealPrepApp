@@ -44,6 +44,17 @@ def init_db():
     )
     """)
 
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS barcode_products (
+        barcode TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        unit TEXT NOT NULL,
+        calories_per_unit REAL NOT NULL,
+        protein_per_unit REAL NOT NULL,
+        tag TEXT DEFAULT 'others'
+    )
+    """)
+
     # Migration for old existing meal_logs table
     cur.execute("PRAGMA table_info(meal_logs)")
     columns = [col[1] for col in cur.fetchall()]
@@ -56,7 +67,6 @@ def init_db():
 
     conn.commit()
     conn.close()
-
 
 def seed_sample_data():
     conn = get_connection()
@@ -362,6 +372,60 @@ def delete_meal_log(meal_name: str, eaten_date: str):
         DELETE FROM meal_logs
         WHERE meal_name = ? AND eaten_date = ?
     """, (meal_name, eaten_date))
+
+
+    conn.close()
+
+def get_barcode_product(barcode):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+    SELECT barcode, name, unit, calories_per_unit, protein_per_unit, tag
+    FROM barcode_products
+    WHERE barcode = ?
+    """, (barcode,))
+
+    row = cur.fetchone()
+    conn.close()
+
+    if not row:
+        return None
+
+    barcode, name, unit, calories, protein, tag = row
+
+    return {
+        "barcode": barcode,
+        "name": name,
+        "quantity": "",
+        "unit": unit,
+        "calories": calories,
+        "protein": protein,
+        "tag": tag or "others",
+        "source": "Local DB",
+    }
+
+
+def save_barcode_product(barcode, name, unit, calories, protein, tag):
+    if not barcode:
+        return
+
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+    INSERT OR REPLACE INTO barcode_products (
+        barcode, name, unit, calories_per_unit, protein_per_unit, tag
+    )
+    VALUES (?, ?, ?, ?, ?, ?)
+    """, (
+        barcode,
+        name,
+        unit,
+        float(calories),
+        float(protein),
+        tag or "others",
+    ))
 
     conn.commit()
     conn.close()

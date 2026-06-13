@@ -1,0 +1,5 @@
+kivy==2.3.1
+opencv-python
+pytesseract
+pillow
+requests
