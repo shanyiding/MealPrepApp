@@ -92,48 +92,43 @@ class ScanUI(BoxLayout):
         self.toast.text = ""
 
     def _build_camera_card(self):
-        card = Card(orientation="vertical", size_hint_y=None, height=350)
-        card.padding = [14, 14, 14, 14]
+        card = Card(
+            orientation="vertical",
+            size_hint=(1, 0.22),   # <-- takes most of the page
+        )
+        card.padding = [10, 10, 10, 10]
         card.spacing = 10
 
         desc = Label(
-            text="Point the camera at the nutrition label. Fill the label as much as possible.",
-            font_size=12,
+            text="Center the nutrition label inside the frame.",
+            font_size=13,
             color=theme.MUTED,
             size_hint_y=None,
-            height=30,
-            halign="left",
+            height=28,
+            halign="center",
             valign="middle",
         )
         desc.bind(size=desc.setter("text_size"))
         card.add_widget(desc)
 
+        # BIG camera preview
         self.camera = Camera(
             play=True,
-            resolution=(1280, 720),
-            size_hint_y=None,
-            height=220,
+            resolution=(1920, 1080),
+            size_hint=(1, 1),      # fill remaining space
         )
         card.add_widget(self.camera)
-
-        btn_row = BoxLayout(
-            orientation="horizontal",
-            size_hint_y=None,
-            height=44,
-            spacing=8,
-        )
 
         scan_btn = RoundedButton(
             "Scan Nutrition Label",
             bg_color=theme.BLUE,
-            height=44,
-            radius=12,
-            font_size=13,
+            height=52,
+            radius=18,
+            font_size=15,
         )
         scan_btn.bind(on_press=lambda _: self.capture_and_scan())
 
-        btn_row.add_widget(scan_btn)
-        card.add_widget(btn_row)
+        card.add_widget(scan_btn)
 
         self.add_widget(card)
 
@@ -146,7 +141,6 @@ class ScanUI(BoxLayout):
             text="Check the extracted info before adding it to your fridge.",
             font_size=12,
             color=theme.MUTED,
-            size_hint_y=None,
             height=24,
             halign="left",
             valign="middle",
